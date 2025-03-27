@@ -6,24 +6,21 @@ import type { NextRequest } from 'next/server';
 import type { ParsedRow } from '@/lib/types';
 import { findTopK } from '@/lib/vector-similarity';
 import { processAllQuestions, getStoredEmbeddings } from '@/lib/questions-service';
-import * as tf from '@tensorflow/tfjs-node';
-import * as use from '@tensorflow-models/universal-sentence-encoder';
+import OpenAI from 'openai';
 
-let model: use.UniversalSentenceEncoder | null = null;
-
-async function initializeModel() {
-  if (!model) {
-    model = await use.load();
-  }
-}
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY,
+});
 
 // Generate embedding for search query
 async function generateEmbedding(text: string): Promise<number[]> {
-  await initializeModel();
-  const embeddings = await model!.embed([text]);
-  const array = await embeddings.array();
-  embeddings.dispose(); // Clean up tensor
-  return array[0];
+  const response = await openai.embeddings.create({
+    model: "text-embedding-3-small",
+    input: text,
+    encoding_format: "float"
+  });
+  
+  return response.data[0].embedding;
 }
 
 function isValidUrl(text: string): boolean {
@@ -73,7 +70,6 @@ export async function GET(request: NextRequest): Promise<Response> {
           if (query) {
             (async () => {
               try {
-                await initializeModel();
                 const queryVector = await generateEmbedding(query);
                 
                 // Get stored embeddings from CSV

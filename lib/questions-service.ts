@@ -2,36 +2,17 @@ import { readFile, writeFile } from 'fs/promises';
 import { join } from 'path';
 import Papa from 'papaparse';
 import OpenAI from 'openai';
-import * as tf from '@tensorflow/tfjs-node';
-import * as use from '@tensorflow-models/universal-sentence-encoder';
 import type { ParsedRow } from './types';
-
-// Initialize TensorFlow backend
-tf.setBackend('tensorflow');
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
-let model: use.UniversalSentenceEncoder | null = null;
-
-// Initialize USE model
-async function initializeModel() {
-  if (!model) {
-    try {
-      model = await use.load();
-    } catch (error) {
-      console.error("Error loading Universal Sentence Encoder model:", error);
-      throw error;
-    }
-  }
-}
-
 // Format question using GPT-4
 async function formatQuestionWithAI(question: string): Promise<string> {
   try {
     const completion = await openai.chat.completions.create({
-      model: "gpt-4",
+      model: "gpt-4o",
       messages: [
         {
           role: "system",
@@ -51,13 +32,15 @@ async function formatQuestionWithAI(question: string): Promise<string> {
   }
 }
 
-// Generate embedding for a question
+// Generate embedding for a question using OpenAI
 async function generateEmbedding(text: string): Promise<number[]> {
-  await initializeModel();
-  const embeddings = await model!.embed([text]);
-  const array = await embeddings.array();
-  embeddings.dispose(); // Clean up tensor
-  return array[0];
+  const response = await openai.embeddings.create({
+    model: "text-embedding-3-small",
+    input: text,
+    encoding_format: "float"
+  });
+  
+  return response.data[0].embedding;
 }
 
 // Process a single question: format and generate embedding

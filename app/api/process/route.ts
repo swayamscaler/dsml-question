@@ -1,37 +1,40 @@
 import { processAllQuestions } from '@/lib/questions-service';
-
-// Set up a custom encoder for streaming JSON responses
-const encoder = new TextEncoder();
+import { NextResponse } from 'next/server';
 
 export async function GET() {
+  const encoder = new TextEncoder();
   const stream = new TransformStream();
   const writer = stream.writable.getWriter();
 
   // Start processing in the background
   processAllQuestions({
     onProgress: async (status: string) => {
-      // Write progress updates to the stream
+      // Send each update as a JSON line
       await writer.write(
         encoder.encode(JSON.stringify({ status }) + '\n')
       );
     }
+  }).then(async () => {
+    // Close the stream when done
+    await writer.close();
   }).catch(async (error) => {
-    // Write error to stream
+    // Send error and close stream
     await writer.write(
       encoder.encode(
         JSON.stringify({
-          status: `Error: ${error instanceof Error ? error.message : 'Unknown error'}`
+          error: error instanceof Error ? error.message : 'Unknown error'
         }) + '\n'
       )
     );
-  }).finally(async () => {
     await writer.close();
   });
 
-  return new Response(stream.readable, {
+  // Return the stream immediately
+  return new NextResponse(stream.readable, {
     headers: {
-      'Content-Type': 'application/json',
-      'Transfer-Encoding': 'chunked',
+      'Content-Type': 'text/event-stream',
+      'Cache-Control': 'no-cache',
+      'Connection': 'keep-alive',
     },
   });
 }
