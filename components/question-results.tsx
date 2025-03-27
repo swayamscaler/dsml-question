@@ -252,7 +252,7 @@ export function QuestionResults({ results, company, role, isLoading }: QuestionR
                       >
                         <div className="flex items-center gap-1.5">
                           <MessageCircle className="h-4 w-4" />
-                          Sample Answer
+                          What the candidate answered
                         </div>
                         {expandedAnswers[question.id] ? (
                           <ChevronUp className="h-4 w-4" />
