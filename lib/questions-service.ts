@@ -1,22 +1,17 @@
+import { readFile, writeFile } from 'fs/promises';
+import { join } from 'path';
 import Papa from 'papaparse';
 import OpenAI from 'openai';
 import * as tf from '@tensorflow/tfjs-node';
 import * as use from '@tensorflow-models/universal-sentence-encoder';
-import { createClient } from '@supabase/supabase-js';
 import type { ParsedRow } from './types';
 
-// Initialize Clients
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
+// Initialize TensorFlow backend
+tf.setBackend('tensorflow');
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
-
-// Initialize TensorFlow backend
-tf.setBackend('tensorflow');
 
 let model: use.UniversalSentenceEncoder | null = null;
 
@@ -79,19 +74,10 @@ async function processQuestion(
   return { formattedQuestion, embedding };
 }
 
-// Read CSV file from Supabase storage
-export async function getAllQuestions(): Promise<ParsedRow[]> {
-  const { data, error } = await supabase
-    .storage
-    .from('questions')
-    .download('dsml.csv');
-
-  if (error) {
-    console.error('Error fetching CSV from Supabase:', error);
-    throw error;
-  }
-
-  const csvText = await data.text();
+// Read CSV file
+async function readCsv(): Promise<ParsedRow[]> {
+  const csvPath = join(process.cwd(), 'dsml.csv');
+  const csvText = await readFile(csvPath, 'utf-8');
   return new Promise((resolve) => {
     Papa.parse(csvText, {
       header: true,
@@ -101,23 +87,11 @@ export async function getAllQuestions(): Promise<ParsedRow[]> {
   });
 }
 
-// Write CSV file to Supabase storage
+// Write CSV file
 async function writeCsv(rows: ParsedRow[]): Promise<void> {
+  const csvPath = join(process.cwd(), 'dsml.csv');
   const csv = Papa.unparse(rows);
-  const blob = new Blob([csv], { type: 'text/csv' });
-  
-  const { error } = await supabase
-    .storage
-    .from('questions')
-    .upload('dsml.csv', blob, {
-      cacheControl: '3600',
-      upsert: true
-    });
-
-  if (error) {
-    console.error('Error writing CSV to Supabase:', error);
-    throw error;
-  }
+  await writeFile(csvPath, csv, 'utf-8');
 }
 
 // Process all questions in the CSV
@@ -126,7 +100,7 @@ export async function processAllQuestions({
 }: { 
   onProgress?: (status: string) => Promise<void> 
 } = {}) {
-  const rows = await getAllQuestions();
+  const rows = await readCsv();
   const processedRows: ParsedRow[] = [];
 
   const totalQuestions = rows.length;
@@ -213,7 +187,7 @@ export async function processAllQuestions({
 
 // Get embeddings from CSV
 export async function getStoredEmbeddings(): Promise<Map<string, number[]>> {
-  const rows = await getAllQuestions();
+  const rows = await readCsv();
   const embeddings = new Map<string, number[]>();
 
   for (const row of rows) {
