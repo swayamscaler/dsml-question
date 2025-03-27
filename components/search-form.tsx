@@ -46,7 +46,7 @@ export function SearchForm() {
     <div className="space-y-8">
       <div className="bg-white rounded-xl border shadow-md p-6 md:p-8 transition-all hover:shadow-lg">
         <form onSubmit={handleSubmit} className="space-y-6">
-          <div className="space-y-2">
+          {/* <div className="space-y-2">
             <Label htmlFor="search" className="text-gray-700 font-medium">
               Search Query (Optional)
             </Label>
@@ -62,7 +62,7 @@ export function SearchForm() {
                 className="pl-10 py-6 bg-gray-50 border-gray-200 focus:bg-white transition-colors"
               />
             </div>
-          </div>
+          </div> */}
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="space-y-2">
