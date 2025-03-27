@@ -13,20 +13,6 @@ export interface Comment {
   timestamp: number
 }
 
-export interface Question {
-  id: string
-  question: string
-  originalQuestion?: string
-  questionUrl?: string
-  answer?: string
-  company: string
-  role: string
-  matchType: "exact" | "company" | "role"
-  // Add vector or keywords for similarity comparison
-  keywords?: string[]
-  comments?: Comment[]
-}
-
 export interface QuestionData {
   id: string
   question: string
@@ -37,11 +23,20 @@ export interface QuestionData {
   role: string
 }
 
+export interface Question extends QuestionData {
+  matchType: "exact" | "company" | "role"
+  similarity?: number // Similarity score from vector comparison
+  keywords?: string[]
+  comments?: Comment[]
+}
+
 export interface ParsedRow {
   'Interview ID': string
   'Question (including Followups)': string
   'Solution Given'?: string
   'Company': string
   'Role': string
+  'Formatted Question'?: string
+  'Embedding'?: string  // Store embeddings as JSON string
   [key: string]: string | undefined
 }

@@ -202,22 +202,29 @@ export function QuestionResults({ results, company, role, isLoading }: QuestionR
                         <div>{question.question}</div>
                       )}
                     </CardTitle>
-                    <Badge
-                      variant={question.matchType === "exact" ? "default" : "outline"}
-                      className={`${
-                        question.matchType === "exact"
-                          ? "bg-blue-600 hover:bg-blue-700"
+                    <div className="flex items-center gap-2">
+                      {question.similarity !== undefined && (
+                        <div className="text-sm text-gray-500 whitespace-nowrap">
+                          {Math.round(question.similarity * 100)}% match
+                        </div>
+                      )}
+                      <Badge
+                        variant={question.matchType === "exact" ? "default" : "outline"}
+                        className={`${
+                          question.matchType === "exact"
+                            ? "bg-blue-600 hover:bg-blue-700"
+                            : question.matchType === "company"
+                              ? "border-amber-500 text-amber-700 bg-amber-50"
+                              : "border-emerald-500 text-emerald-700 bg-emerald-50"
+                        } whitespace-nowrap`}
+                      >
+                        {question.matchType === "exact"
+                          ? "Exact Match"
                           : question.matchType === "company"
-                            ? "border-amber-500 text-amber-700 bg-amber-50"
-                            : "border-emerald-500 text-emerald-700 bg-emerald-50"
-                      } whitespace-nowrap`}
-                    >
-                      {question.matchType === "exact"
-                        ? "Exact Match"
-                        : question.matchType === "company"
-                          ? "Company Match"
-                          : "Role Match"}
-                    </Badge>
+                            ? "Company Match"
+                            : "Role Match"}
+                      </Badge>
+                    </div>
                   </div>
                   <CardDescription className="flex items-center gap-2 text-gray-600 mt-2">
                     <Briefcase className="h-4 w-4" />

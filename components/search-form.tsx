@@ -12,6 +12,7 @@ import type { Question } from "@/lib/types"
 import { Search, Briefcase } from "lucide-react"
 
 export function SearchForm() {
+  const [searchQuery, setSearchQuery] = useState("")
   const [company, setCompany] = useState("")
   const [role, setRole] = useState("")
   const [results, setResults] = useState<Question[] | null>(null)
@@ -23,6 +24,7 @@ export function SearchForm() {
     
     const trimmedCompany = company.trim()
     const trimmedRole = role.trim()
+    const trimmedQuery = searchQuery.trim()
     
     if (!trimmedCompany || !trimmedRole) return
 
@@ -30,7 +32,7 @@ export function SearchForm() {
     setSearchPerformed(true)
 
     try {
-      const searchResults = await searchQuestions(trimmedCompany, trimmedRole)
+      const searchResults = await searchQuestions(trimmedCompany, trimmedRole, trimmedQuery || undefined)
       setResults(searchResults)
     } catch (error) {
       console.error("Error searching questions:", error)
@@ -44,6 +46,24 @@ export function SearchForm() {
     <div className="space-y-8">
       <div className="bg-white rounded-xl border shadow-md p-6 md:p-8 transition-all hover:shadow-lg">
         <form onSubmit={handleSubmit} className="space-y-6">
+          <div className="space-y-2">
+            <Label htmlFor="search" className="text-gray-700 font-medium">
+              Search Query (Optional)
+            </Label>
+            <div className="relative">
+              <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-gray-400">
+                <Search className="h-5 w-5" />
+              </div>
+              <Input
+                id="search"
+                placeholder="Search for specific topics or keywords"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-10 py-6 bg-gray-50 border-gray-200 focus:bg-white transition-colors"
+              />
+            </div>
+          </div>
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="space-y-2">
               <Label htmlFor="company" className="text-gray-700 font-medium">
