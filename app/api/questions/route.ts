@@ -2,6 +2,7 @@ import { readFile } from 'fs/promises';
 import { join } from 'path';
 import Papa from 'papaparse';
 import { NextResponse } from 'next/server';
+import type { NextRequest } from 'next/server';
 import type { ParsedRow } from '@/lib/types';
 import { findTopK } from '@/lib/vector-similarity';
 import { processAllQuestions, getStoredEmbeddings } from '@/lib/questions-service';
@@ -34,7 +35,7 @@ function isValidUrl(text: string): boolean {
   }
 }
 
-export async function GET(request: Request) {
+export async function GET(request: NextRequest): Promise<Response> {
   try {
     const { searchParams } = new URL(request.url);
     const company = searchParams.get('company') || '';
@@ -50,11 +51,11 @@ export async function GET(request: Request) {
     const csvPath = join(process.cwd(), 'dsml.csv');
     const csvText = await readFile(csvPath, 'utf-8');
 
-    return new Promise(async (resolve) => {
+    const response = await new Promise<Response>((resolve, reject) => {
       Papa.parse(csvText, {
         header: true,
         skipEmptyLines: true,
-        complete: async (results: Papa.ParseResult<ParsedRow>) => {
+        complete: (results: Papa.ParseResult<ParsedRow>) => {
           const filteredRows = results.data
             .filter(row => row['Interview ID'] && row['Question (including Followups)'] && row['Company'] && row['Role']);
 
@@ -70,49 +71,55 @@ export async function GET(request: Request) {
 
           // Use vector search if query is provided
           if (query) {
-            await initializeModel();
-            const queryVector = await generateEmbedding(query);
-            
-            // Get stored embeddings from CSV
-            const storedEmbeddings = new Map<string, number[]>();
-            for (const row of filteredRows) {
-              if (row['Embedding']) {
-                try {
-                  storedEmbeddings.set(row['Interview ID'], JSON.parse(row['Embedding']));
-                } catch (error) {
-                  console.error(`Error parsing embedding for question ${row['Interview ID']}:`, error);
+            (async () => {
+              try {
+                await initializeModel();
+                const queryVector = await generateEmbedding(query);
+                
+                // Get stored embeddings from CSV
+                const storedEmbeddings = new Map<string, number[]>();
+                for (const row of filteredRows) {
+                  if (row['Embedding']) {
+                    try {
+                      storedEmbeddings.set(row['Interview ID'], JSON.parse(row['Embedding']));
+                    } catch (error) {
+                      console.error(`Error parsing embedding for question ${row['Interview ID']}:`, error);
+                    }
+                  }
                 }
+
+                // Convert stored embeddings to format needed by findTopK
+                const vectors = Array.from(storedEmbeddings.entries()).map(([id, vector]) => ({
+                  id,
+                  vector
+                }));
+
+                const similarQuestions = findTopK(queryVector, vectors, 50);
+
+                // Filter and sort results
+                const results = similarQuestions
+                  .map(({ id, similarity }) => {
+                    const question = questions.find(q => q.id === id);
+                    if (!question) return null;
+
+                    const companyMatch = company ? question.company.toLowerCase().includes(company.toLowerCase()) : true;
+                    const roleMatch = role ? question.role.toLowerCase().includes(role.toLowerCase()) : true;
+
+                    if (!companyMatch && !roleMatch) return null;
+
+                    return {
+                      ...question,
+                      matchType: companyMatch && roleMatch ? 'exact' : companyMatch ? 'company' : 'role',
+                      similarity
+                    };
+                  })
+                  .filter(Boolean);
+
+                resolve(NextResponse.json(results, { status: 200 }));
+              } catch (error) {
+                reject(error);
               }
-            }
-
-            // Convert stored embeddings to format needed by findTopK
-            const vectors = Array.from(storedEmbeddings.entries()).map(([id, vector]) => ({
-              id,
-              vector
-            }));
-
-            const similarQuestions = findTopK(queryVector, vectors, 50);
-
-            // Filter and sort results
-            const results = similarQuestions
-              .map(({ id, similarity }) => {
-                const question = questions.find(q => q.id === id);
-                if (!question) return null;
-
-                const companyMatch = company ? question.company.toLowerCase().includes(company.toLowerCase()) : true;
-                const roleMatch = role ? question.role.toLowerCase().includes(role.toLowerCase()) : true;
-
-                if (!companyMatch && !roleMatch) return null;
-
-                return {
-                  ...question,
-                  matchType: companyMatch && roleMatch ? 'exact' : companyMatch ? 'company' : 'role',
-                  similarity
-                };
-              })
-              .filter(Boolean);
-
-            resolve(NextResponse.json(results));
+            })();
           } else {
             // Traditional company/role filtering without vector search
             const results = questions
@@ -132,15 +139,16 @@ export async function GET(request: Request) {
                 return companyMatch || roleMatch;
               });
 
-            resolve(NextResponse.json(results));
+            resolve(NextResponse.json(results, { status: 200 }));
           }
         },
         error: (error: Error) => {
           console.error("Error parsing CSV:", error);
-          resolve(NextResponse.json([], { status: 500 }));
+          reject(new Error("Failed to parse CSV"));
         }
       });
     });
+    return response;
   } catch (error) {
     console.error("Error loading questions:", error);
     return NextResponse.json([], { status: 500 });
