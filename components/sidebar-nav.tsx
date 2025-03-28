@@ -29,7 +29,7 @@ export function SidebarNav() {
           </svg>
         </div>
         <div>
-          <h1 className="font-bold text-lg">Interview Companion</h1>
+          <h1 className="font-bold text-lg">Interview Questions: by scaler community</h1>
           <div className="text-xs flex items-center">
             <span className="w-2 h-2 bg-green-400 rounded-full mr-1"></span>
             <span>beta</span>

@@ -3,7 +3,7 @@ import { FeedbackDialog } from "@/components/feedback-dialog"
 import './globals.css'
 
 export const metadata: Metadata = {
-  title: 'Interview Companion',
+  title: 'Interview Questions: by scaler community',
   description: 'Find and explore interview questions from top companies',
 }
 
@@ -37,7 +37,7 @@ export default function RootLayout({
                 </svg>
               </div>
               <div>
-                <h1 className="font-bold text-2xl text-blue-900">Interview Companion</h1>
+                <h1 className="font-bold text-2xl text-blue-900">Interview Questions: by scaler community</h1>
                 <div className="flex items-center text-xs text-blue-600">
                   <span className="w-2 h-2 bg-green-400 rounded-full mr-1"></span>
                   <span>beta</span>
