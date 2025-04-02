@@ -1,5 +1,7 @@
 import type { Metadata } from 'next'
 import { FeedbackDialog } from "@/components/feedback-dialog"
+import { AuthProvider } from "@/components/auth-provider"
+import { UserAuthButton } from "@/components/user-auth-button"
 import './globals.css'
 
 export const metadata: Metadata = {
@@ -15,6 +17,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body>
+        <AuthProvider>
         <header className="bg-white border-b shadow-sm sticky top-0 z-50">
           <div className="max-w-6xl mx-auto p-6">
             <div className="flex items-center gap-3">
@@ -43,6 +46,9 @@ export default function RootLayout({
                   <span>beta</span>
                 </div>
               </div>
+              <div className="ml-auto">
+                <UserAuthButton />
+              </div>
             </div>
           </div>
         </header>
@@ -54,6 +60,7 @@ export default function RootLayout({
             <FeedbackDialog />
           </div>
         </div>
+        </AuthProvider>
       </body>
     </html>
   )
