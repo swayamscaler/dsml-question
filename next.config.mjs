@@ -21,8 +21,6 @@ const nextConfig = {
     }
   },
   // Turn off optimizations
-  optimizeFonts: false,
-  swcMinify: false,
   compress: false,
   // Skip type checking
   typescript: {
