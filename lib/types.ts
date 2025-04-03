@@ -1,8 +1,8 @@
 export interface WebsiteFeedback {
   id: string
   suggestion: string
-  category: "bug" | "feature" | "improvement" | "other"
-  email?: string
+  rating: number
+  email: string
   timestamp: number
 }
 

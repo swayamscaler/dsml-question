@@ -4,6 +4,7 @@ import { useState } from "react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { MessageSquarePlus } from "lucide-react"
 import type { WebsiteFeedback } from "@/lib/types"
+import { toast } from "sonner"
 
 interface FeedbackFormProps {
   onSubmit: (feedback: WebsiteFeedback) => void
@@ -12,18 +13,18 @@ interface FeedbackFormProps {
 
 function FeedbackForm({ onSubmit, onClose }: FeedbackFormProps) {
   const [suggestion, setSuggestion] = useState("")
-  const [category, setCategory] = useState<WebsiteFeedback["category"]>("improvement")
+  const [rating, setRating] = useState(3)
   const [email, setEmail] = useState("")
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    if (!suggestion.trim()) return
+    if (!suggestion.trim() || !email.trim()) return
 
     const feedback: WebsiteFeedback = {
       id: Math.random().toString(36).substr(2, 9),
       suggestion,
-      category,
-      email: email.trim() || undefined,
+      rating,
+      email: email.trim(),
       timestamp: Date.now()
     }
 
@@ -48,30 +49,36 @@ function FeedbackForm({ onSubmit, onClose }: FeedbackFormProps) {
 
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-1">
-          Category
+          How useful did you find this feature? (1-5)
         </label>
-        <select
-          value={category}
-          onChange={(e) => setCategory(e.target.value as WebsiteFeedback["category"])}
-          className="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-        >
-          <option value="bug">Bug Report</option>
-          <option value="feature">Feature Request</option>
-          <option value="improvement">Improvement</option>
-          <option value="other">Other</option>
-        </select>
+        <div className="flex gap-4">
+          {[1, 2, 3, 4, 5].map((value) => (
+            <button
+              key={value}
+              type="button"
+              onClick={() => setRating(value)}
+              className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-medium transition-colors
+                ${rating === value 
+                  ? 'bg-blue-600 text-white' 
+                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
+            >
+              {value}
+            </button>
+          ))}
+        </div>
       </div>
 
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-1">
-          Email (optional)
+          Email
         </label>
         <input
           type="email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          placeholder="Enter your email for follow-up"
+          placeholder="Enter your email"
           className="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+          required
         />
       </div>
 
@@ -97,9 +104,29 @@ function FeedbackForm({ onSubmit, onClose }: FeedbackFormProps) {
 export function FeedbackDialog() {
   const [open, setOpen] = useState(false)
   
-  const handleSubmit = (feedback: WebsiteFeedback) => {
-    // TODO: Send feedback to backend
-    console.log("Feedback submitted:", feedback)
+  const handleSubmit = async (feedback: WebsiteFeedback) => {
+    try {
+      const response = await fetch('/api/feedback', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(feedback),
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to submit feedback')
+      }
+
+      const data = await response.json()
+      if (!data.success) {
+        throw new Error(data.error || 'Failed to submit feedback')
+      }
+      toast.success('Thank you for your feedback!')
+    } catch (error) {
+      console.error('Error submitting feedback:', error)
+      toast.error('Failed to submit feedback. Please try again.')
+    }
   }
 
   return (
